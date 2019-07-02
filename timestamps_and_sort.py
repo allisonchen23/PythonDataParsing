@@ -41,10 +41,13 @@ def goodVsBadData(data_table):
     #print(len(ageFile)) #expect 1024
 
     row_num = 0  #row number of measurement data sheet
-    i=0
-    while i < len(ageFile):  #use a while loop because we don't want i to increment if measurement data has two entries with same timestamp
-        while row_num < len(data_table) and ageFile.Time_Stamp[i] != data_table.created_at[row_num]:
-            row_num = row_num + 1
+    i = 0
+    found_time_match=False
+    while i < len(ageFile) and row_num<len(data_table):  #use a while loop because we don't want i to increment if measurement data has two entries with same timestamp
+        if not found_time_match:
+            while row_num < len(data_table) and ageFile.Time_Stamp[i] != data_table.created_at[row_num]:
+                row_num = row_num + 1
+                found_time_match=True
         if row_num >= len(data_table):  #if out of bounds, end immediately
             break
         for combo in itertools.combinations(data_table.listed_vals[row_num],2):
@@ -58,7 +61,7 @@ def goodVsBadData(data_table):
                     )[0]
                     intersection_y = segments_to_check.find_the_intersection_point(
                     )[1]
-                    if abs(segments_to_check.calc_angle_between_segments()) > 80.0 and ageFile.Time_Stamp[i] == data_table.created_at[row_num]:
+                    if abs(segments_to_check.calc_angle_between_segments()) > 80.0: # and ageFile.Time_Stamp[i] == data_table.created_at[row_num]:
                         df = df.append([[data_table.classification_id[row_num], \
                                 data_table.user_name[row_num], \
                                 data_table.created_at[row_num], \
@@ -100,11 +103,24 @@ def goodVsBadData(data_table):
                                 segments_to_check.calc_angle_between_segments(), \
                                 intersection_x, \
                                 intersection_y]])
-        row_num = row_num + 1
         # because sometimes two timestamps from measurement data match with a timestampe from age data,
         # we want to apply that age data to both the entries from measurement data
-        if (ageFile.Time_Stamp[i] != data_table.created_at[row_num]):  #this row num is the new row num
-            i=i+1
+        if (i + 1) == len(ageFile): #last row in age data
+            if (row_num+1)==len(data_table): #last row in measurement data as well so next step will have us quit
+                i = i + 1
+                #if at end of age data but not measurement data, only increment row_num (done below the else if)
+            else:
+                row_num = row_num + 1  #otherwise the remaining elements in measurement data should match to last entry of age data
+            continue #skip everything else, and this will end the outer loop--stop looking at data
+        elif (row_num+1)==len(data_table): #last row of measure data but not last row of age data
+            row_num = row_num + 1 #row_num will become out of bounds, ending the loops
+            continue
+        #because of the continue statements above, reaching this point means there are valid elements at index i+1 and row_num+1
+        if (ageFile.Time_Stamp[i+1] == data_table.created_at[row_num+1]):  #if the next entry in both data sets DO have the same timestamp, increment the row for age data
+            i = i + 1
+        #ONLY the line below this comment will execute if
+        row_num = row_num + 1  #no matter what, we should be looking at the next item in measurement data
+
     df = df.rename({0: 'classification_id', \
                     1: 'username', \
                     2: 'created_at', \
@@ -146,7 +162,9 @@ def clean_data(file_name):
 #                         help='Process some microplant data')
 #     args = parser.parse_args()
 #     clean_data(args.file)
-measurements_data = open(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets\microplants_measurements.csv', encoding='utf-8')
+measurements_data = open(
+    r'C:\Users\achen\Desktop\Sum19FM\CSVSheets\mini_md_32_51.csv',
+    encoding='utf-8')
 #'C:\Users\achen\Desktop\Sum19FM\CSVSheets\mini_microplants_measurements.csv','r')
 newdata = clean_data(measurements_data)
 newdata.to_csv(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets\scruppedData.csv')
