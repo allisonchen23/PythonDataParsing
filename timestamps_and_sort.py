@@ -177,7 +177,7 @@ def clean_data(file_name):
 #                         help='Process some microplant data')
 #     args = parser.parse_args()
 #     clean_data(args.file)
-measurements_data = open(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets\mini_microplants_measurements.csv', \
+measurements_data = open(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets\time_testing.csv', \
     encoding='utf-8')
 # measurements_data = open(r'G:\TimestampMatching\time_testing.csv', encoding='utf-8')
 newdata = clean_data(measurements_data)
