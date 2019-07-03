@@ -76,5 +76,5 @@ if __name__== '__main__':
     parser.add_argument('-f', '--file', default= 'age_data_google_analytics.csv', help='Process some microplant data')
     args = parser.parse_args()
     cleanse_age(args.file).to_csv(r'C:\Users\achen\Desktop\Sum19FM\GitCopy\microplants_cleansing\ageFile2.csv',
-               encoding='utf-8')
+               encoding='utf-8', index=False)
     #print(cleanse_age(args.file).age.head())
