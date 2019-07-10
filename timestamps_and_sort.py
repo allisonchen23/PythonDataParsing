@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import pytz
 from pytz import timezone
 from plant_and_segment_classes import *
+from age_data_function import *
 #to make sure the above works, go to your computers settings > search advanced settings > view more results > view advanced settings >
 #environment variables > select PATH under system variables > New > add the path to this location
 import argparse
@@ -31,9 +32,12 @@ def goodVsBadData(data_table):
 
     #read the ages file as csv
     #    f = open(r'G:\TimestampMatching\ageFile.csv', encoding='utf-8')
-    f = open(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets\ageFile.csv',
-             encoding='utf-8')
-    ageFile = pd.read_csv(f)
+    # f = open(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets\ageFile.csv',
+    #          encoding='utf-8')
+    # ageFile = pd.read_csv(f)
+    ageFile = cleanse_age(
+        r'C:\Users\achen\Desktop\Sum19FM\GitCopy\microplants_cleansing\age_data_google_analytics.csv'
+    )  #stores dataframe into variable ageFile and proceed as normal
     ageFile.time_stamp = pd.to_datetime(ageFile.time_stamp)
     df = pd.DataFrame()
     data_table.created_at = pd.to_datetime(data_table.created_at)
@@ -61,7 +65,7 @@ def goodVsBadData(data_table):
             while row_num < len(data_table) and ageFile.time_stamp[
                     i] != data_table.created_at[row_num]:
                 row_num = row_num + 1
-                found_time_match = True
+            found_time_match = True
         if row_num >= len(data_table):  #if out of bounds, end immediately
             break
         for combo in itertools.combinations(data_table.listed_vals[row_num],
@@ -111,7 +115,7 @@ def goodVsBadData(data_table):
                                 lengths_minor_major[3][0], \
                                 lengths_minor_major[3][1], \
                                 lengths_minor_major[3][2], \
-                                lengths_minor_major[3][3]]])   
+                                lengths_minor_major[3][3]]])
         # because sometimes two timestamps from measurement data match with a timestampe from age data,
         # we want to apply that age data to both the entries from measurement data
         if (i + 1) == len(ageFile):  #last row in age data
@@ -123,15 +127,26 @@ def goodVsBadData(data_table):
             else:
                 row_num = row_num + 1  #otherwise the remaining elements in measurement data should match to last entry of age data
             continue  #skip everything else, and this will end the outer loop--stop looking at data
-        elif (row_num + 1) == len(
-                data_table
-        ):  #last row of measure data but not last row of age data
+        elif (row_num + 1) == len(data_table):  #last row of measure data but not last row of age data
             row_num = row_num + 1  #row_num will become out of bounds, ending the loops
             continue
         #because of the continue statements above, reaching this point means there are valid elements at index i+1 and row_num+1
         if (ageFile.time_stamp[i + 1] == data_table.created_at[row_num + 1]):
             #if the next entry in both data sets DO have the same timestamp, increment the row for age data
             i = i + 1
+        elif (ageFile.time_stamp[i + 1] < data_table.created_at[row_num + 1]):
+            #account for the case if there is a timestamp in age data where no measurement data timestamp is within 2 minutes of it
+            while (ageFile.time_stamp[i + 1] + timedelta(minutes=2) < data_table.created_at[row_num + 1]):
+                i = i + 1
+                
+            if (ageFile.time_stamp[i + 1] <= data_table.created_at[row_num + 1]):
+                i = i + 1
+            elif (ageFile.time_stamp[i + 1] > data_table.created_at[row_num + 1]): #at most we will be over by 1 timestamp
+                i = i - 1
+
+        #at this point, i will be caught up to the appropriate index with a "uncertainty" of 2 minutes behind what it should be
+        #so now get to the row in age data with a timestamp as close to but not exceeding
+
         #ONLY the line below this comment will execute if
         row_num = row_num + 1  #no matter what, we should be looking at the next item in measurement data
 
@@ -177,10 +192,10 @@ def clean_data(file_name):
 #                         help='Process some microplant data')
 #     args = parser.parse_args()
 #     clean_data(args.file)
-measurements_data = open(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets\mini_microplants_measurements.csv', \
+measurements_data = open(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets_and_Data\time_testing.csv', \
     encoding='utf-8')
 # measurements_data = open(r'G:\TimestampMatching\time_testing.csv', encoding='utf-8')
 newdata = clean_data(measurements_data)
-newdata.to_csv(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets\scruppedData.csv',
+newdata.to_csv(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets_and_Data\scruppedData.csv',
                encoding='utf-8')
 # newdata.to_csv(r'G:\TimestampMatching\scruppedData.csv', encoding = 'utf-8')
