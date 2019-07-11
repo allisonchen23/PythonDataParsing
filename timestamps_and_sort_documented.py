@@ -80,28 +80,32 @@ def goodVsBadData(data_table):
     #iterate this loop while indices are in bounds
     while i < len(ageFile) and row_num < len(data_table):
         #use a while loop because we don't want i to increment if measurement data has two entries with same timestamp
+        #this if below will only occur in the beginning
         if not found_time_match: #this if allows us to skip everything before the first timestamp in age data
             while row_num < len(data_table) and ageFile.time_stamp[
                     i] != data_table.created_at[row_num]:
                 row_num = row_num + 1
             found_time_match = True
+
         if row_num >= len(data_table):  #if out of bounds, end immediately
             break
+        #each entry consists of essentially segments determined by the x and y coordinates of the end points. 
+        # This for loop make all possible combinations of 2 segments on an image. If they don't intersect or aren't on the screen, 
+        # we throw them out
         for combo in itertools.combinations(data_table.listed_vals[row_num],
                                             2):
             segments_to_check = CheckLeaf(combo[0], combo[1])
             if segments_to_check.line_segments_intersect(
             ) and segments_to_check.on_screen():
                 if (int(data_table.workflow_id[row_num]) == 3449) and (float(
-                        data_table.workflow_version[row_num]) == 5.8):
-                    lengths_minor_major = segments_to_check.calc_lengths_minor_major(
-                    )
-                    intersection_x = segments_to_check.find_the_intersection_point(
-                    )[0]
-                    intersection_y = segments_to_check.find_the_intersection_point(
-                    )[1]
+                        data_table.workflow_version[row_num]) == 5.8): #just something from the csv sheet
+                    # do some calculations
+                    lengths_minor_major = segments_to_check.calc_lengths_minor_major()
+                    intersection_x = segments_to_check.find_the_intersection_point()[0]
+                    intersection_y = segments_to_check.find_the_intersection_point()[1]
 
-                    #variables for in or out of time range
+                    #variables for in or out of time range. Our tolerance currently is 2 minutes. 
+                    # Any measurement over 2 minutes after an age timestamp is labeled as OUT since we cannot confidently say that this is the same person
                     time_range=""
                     if (ageFile.time_stamp[i] == data_table.created_at[row_num] \
                        or ageFile.time_stamp[i] + timedelta(minutes=2) >= data_table.created_at[row_num]):
@@ -115,6 +119,7 @@ def goodVsBadData(data_table):
                         validity = "Good"
                     else:
                         validity = "Bad"
+                    # Below adds a row onto df (the output data frame) with the values we care about
                     df = df.append([[data_table.classification_id[row_num], \
                                 data_table.user_name[row_num], \
                                 data_table.created_at[row_num], \
@@ -135,40 +140,42 @@ def goodVsBadData(data_table):
                                 lengths_minor_major[3][1], \
                                 lengths_minor_major[3][2], \
                                 lengths_minor_major[3][3]]])
-        # because sometimes two timestamps from measurement data match with a timestampe from age data,
-        # we want to apply that age data to both the entries from measurement data
-        if (i + 1) == len(ageFile):  #last row in age data
+        #-----------------Below steps through the sheets appropriately, handling any weird cases------------------
+
+        if (i + 1) == len(ageFile):  # if last row in age data
             if (row_num + 1) == len(
-                    data_table
-            ):  #last row in measurement data as well so next step will have us quit
+                    data_table):  #last row in measurement data as well so next step will have us fail the loop condition and be out of bounds
                 i = i + 1
-                #if at end of age data but not measurement data, only increment row_num (done below the else if)
+            #if at end of age data but not measurement data, only increment row_num (on measurement data) and nothing else 
+            # because all the remaining measurement entries would correspond with the last age entry or nothing (reason for continue)
             else:
-                row_num = row_num + 1  #otherwise the remaining elements in measurement data should match to last entry of age data
+                row_num = row_num + 1  
             continue  #skip everything else, and this will end the outer loop--stop looking at data
-        elif (row_num + 1) == len(data_table):  #last row of measure data but not last row of age data
-            row_num = row_num + 1  #row_num will become out of bounds, ending the loops
+
+         # if last row of measure data but not last row of age data
+        elif (row_num + 1) == len(data_table): 
+            row_num = row_num + 1  #row_num will become out of bounds, ending the loop
             continue
-        #because of the continue statements above, reaching this point means there are valid elements at index i+1 and row_num+1
+
+        #because of the continue statements above, reaching this point means there are valid elements at indices i+1 and row_num+1
         if (ageFile.time_stamp[i + 1] == data_table.created_at[row_num + 1]):
             #if the next entry in both data sets DO have the same timestamp, increment the row for age data
             i = i + 1
         elif (ageFile.time_stamp[i + 1] < data_table.created_at[row_num + 1]):
             #account for the case if there is a timestamp in age data where no measurement data timestamp is within 2 minutes of it
+            # in IRL this would occur if someone started the survey but then chose not to continue
             while (ageFile.time_stamp[i + 1] + timedelta(minutes=2) < data_table.created_at[row_num + 1]):
                 i = i + 1
-                
+            # the if below will be true when the age data time stamp is less than 2 minutes before the measurement entry 
             if (ageFile.time_stamp[i + 1] <= data_table.created_at[row_num + 1]):
                 i = i + 1
+            #the elif will be true when there's no entry in age data within two minutes before the measurement data but the while loop caused us to overstep
             elif (ageFile.time_stamp[i + 1] > data_table.created_at[row_num + 1]): #at most we will be over by 1 timestamp
-                i = i - 1
-
-        #at this point, i will be caught up to the appropriate index with a "uncertainty" of 2 minutes behind what it should be
-        #so now get to the row in age data with a timestamp as close to but not exceeding
-
-        #ONLY the line below this comment will execute if
+                i=i
+                #i = i - 1
         row_num = row_num + 1  #no matter what, we should be looking at the next item in measurement data
 
+    # after the for loop, rename the columns of the output dataframe
     df = df.rename({0: 'classification_id', \
                     1: 'username', \
                     2: 'created_at', \
@@ -191,9 +198,11 @@ def goodVsBadData(data_table):
                     19: 'minor_x2', \
                     20: 'minor_y2',},\
                    axis='columns')
+    # lastly, return the dataframe of cleaned data
     return df
 
 
+#imports the csv file and calls the cleaning function
 def clean_data(file_name):
     print('importing ', file_name)
     data = pd.read_csv(file_name)
@@ -203,6 +212,7 @@ def clean_data(file_name):
     return newsheet
 
 
+# the commented out part below was used so you could run file in terminal and import your file, but we did it hardcoded for now
 # if __name__ == '__main__':
 #     parser = argparse.ArgumentParser('data to be imported')
 #     parser.add_argument('-f',
@@ -211,10 +221,12 @@ def clean_data(file_name):
 #                         help='Process some microplant data')
 #     args = parser.parse_args()
 #     clean_data(args.file)
-measurements_data = open(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets\time_testing.csv', \
+measurements_data = open(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets_and_Data\time_testing.csv', \
     encoding='utf-8')
 # measurements_data = open(r'G:\TimestampMatching\time_testing.csv', encoding='utf-8')
+# call the clean_data function
 newdata = clean_data(measurements_data)
-newdata.to_csv(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets\scruppedData.csv',
+# export the cleaned data
+newdata.to_csv(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets_and_Data\scruppedData.csv',
                encoding='utf-8')
 # newdata.to_csv(r'G:\TimestampMatching\scruppedData.csv', encoding = 'utf-8')
