@@ -5,8 +5,8 @@ import csv
 import numpy as np
 
 def match_species_id(matchingIDs):
-    voucher_short = pd.read_csv(r'G:\TimestampMatching\voucher_short.csv',
-                                  encoding='utf-8')
+    voucher_short=pd.read_csv(r'C:\Users\achen\Desktop\Sum19FM\GitCopy\microplants_cleansing\voucher_short.csv', encoding='utf-8')
+    #voucher_short = pd.read_csv(r'G:\TimestampMatching\voucher_short.csv',encoding='utf-8')
     voucher_short.number = voucher_short['number'].apply(str)
     voucher_short.number = [x.strip().replace('/','-') \
                             for x in voucher_short.number]
@@ -49,6 +49,8 @@ def match_species_id(matchingIDs):
     print(len(final))
     return final
 
-matchingIDs = pd.read_csv(r'G:\TimestampMatching\matchingIDs.csv',encoding = 'utf-8',dtype=str)
+matchingIDs = pd.read_csv(r'C:\Users\achen\Desktop\Sum19FM\GitCopy\microplants_cleansing\matchingIDs.csv', encoding='utf-8')
+#matchingIDs = pd.read_csv(r'G:\TimestampMatching\matchingIDs.csv',encoding = 'utf-8',dtype=str)
 newdata = match_species_id(matchingIDs)
-newdata.to_csv(r'G:\TimestampMatching\speciesKey.csv',encoding = 'utf-8',index=False)
+newdata.to_csv(r'C:\Users\achen\Desktop\Sum19FM\GitCopy\microplants_cleansing\speciesKey.csv', encoding='utf-8', index=False)
+#newdata.to_csv(r'G:\TimestampMatching\speciesKey.csv',encoding = 'utf-8',index=False)
