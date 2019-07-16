@@ -8,7 +8,7 @@ from pytz import timezone
 #local files
 from plant_and_segment_classes import *
 from age_data_function import *
-#from match_species import match_species_id
+from match_species import match_species_id
 from species_dict import make_species_dict
 #to make sure the above works, go to your computers settings > search advanced settings > view more results > view advanced settings >
 #environment variables > select PATH under system variables > New > add the path to this location
@@ -39,9 +39,7 @@ def goodVsBadData(data_table):
     # f = open(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets\ageFile.csv',
     #          encoding='utf-8')
     # ageFile = pd.read_csv(f)
-    ageFile = cleanse_age(
-        r'C:\Users\achen\Desktop\Sum19FM\GitCopy\microplants_cleansing\age_data_google_analytics.csv'
-    )  #stores dataframe into variable ageFile and proceed as normal
+    ageFile = cleanse_age(r'age_data_google_analytics.csv')  #stores dataframe into variable ageFile and proceed as normal
     ageFile.time_stamp = pd.to_datetime(ageFile.time_stamp)
     df = pd.DataFrame()
     data_table.created_at = pd.to_datetime(data_table.created_at)
@@ -63,7 +61,9 @@ def goodVsBadData(data_table):
 
     #-------------Create the species dictionary-----------
     # key is the subject_id and the value is the species
-    species_dict=make_species_dict(open(r'C:\Users\achen\Desktop\Sum19FM\GitCopy\microplants_cleansing\speciesKey.csv', encoding='utf-8'))
+    matchingIDs = pd.read_csv(r'matchingIDs.csv', encoding='utf-8')
+    species_key = match_species_id(matchingIDs)
+    species_dict=make_species_dict(species_key)
     
     row_num = 0  #row number of measurement data sheet
     i = 0
@@ -211,10 +211,8 @@ def clean_data(file_name):
 #     args = parser.parse_args()
 #     clean_data(args.file)
 
-measurements_data = open(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets_and_Data\time_testing.csv', \
-    encoding='utf-8')
+measurements_data = open(r'time_testing.csv', encoding='utf-8')
 # measurements_data = open(r'G:\TimestampMatching\time_testing.csv', encoding='utf-8')
 newdata = clean_data(measurements_data)
-newdata.to_csv(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets_and_Data\scruppedData.csv',
-               encoding='utf-8')
+newdata.to_csv(r'scruppedData.csv', encoding='utf-8')
 # newdata.to_csv(r'G:\TimestampMatching\scruppedData.csv', encoding = 'utf-8')

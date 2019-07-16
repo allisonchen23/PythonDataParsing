@@ -5,7 +5,7 @@ import csv
 import numpy as np
 
 def match_species_id(matchingIDs):
-    voucher_short=pd.read_csv(r'C:\Users\achen\Desktop\Sum19FM\GitCopy\microplants_cleansing\voucher_short.csv', encoding='utf-8')
+    voucher_short=pd.read_csv(r'voucher_short.csv', encoding='utf-8')
     #voucher_short = pd.read_csv(r'G:\TimestampMatching\voucher_short.csv',encoding='utf-8')
     voucher_short.number = voucher_short['number'].apply(str)
     voucher_short.number = [x.strip().replace('/','-') \
@@ -45,9 +45,10 @@ def match_species_id(matchingIDs):
                   2: 'image_name', \
                   3: 'number'}, \
                 axis = 'columns')
-    print(final.head())
-    print(len(final))
-    return final
+    # print(final.head())
+    # print(len(final))
+    return final #final is a dataframe
+    
 
 matchingIDs = pd.read_csv(r'C:\Users\achen\Desktop\Sum19FM\GitCopy\microplants_cleansing\matchingIDs.csv', encoding='utf-8')
 #matchingIDs = pd.read_csv(r'G:\TimestampMatching\matchingIDs.csv',encoding = 'utf-8',dtype=str)
