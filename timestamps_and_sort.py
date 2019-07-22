@@ -1,11 +1,15 @@
+#libraries/packages
 import pandas as pd
 import json
 import itertools
 from datetime import datetime, timedelta
 import pytz
 from pytz import timezone
+#local files
 from plant_and_segment_classes import *
 from age_data_function import *
+from match_species import match_species_id
+from species_dict import make_species_dict
 #to make sure the above works, go to your computers settings > search advanced settings > view more results > view advanced settings >
 #environment variables > select PATH under system variables > New > add the path to this location
 import argparse
@@ -35,14 +39,13 @@ def goodVsBadData(data_table):
     # f = open(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets\ageFile.csv',
     #          encoding='utf-8')
     # ageFile = pd.read_csv(f)
-    ageFile = cleanse_age(
-        r'C:\Users\achen\Desktop\Sum19FM\GitCopy\microplants_cleansing\age_data_google_analytics.csv'
-    )  #stores dataframe into variable ageFile and proceed as normal
+    ageFile = cleanse_age(r'age_data_google_analytics.csv')  #stores dataframe into variable ageFile and proceed as normal
     ageFile.time_stamp = pd.to_datetime(ageFile.time_stamp)
     df = pd.DataFrame()
     data_table.created_at = pd.to_datetime(data_table.created_at)
     data_table.created_at = data_table.created_at.values.astype('<M8[m]')
     data_table.created_at = data_table.created_at.dt.tz_localize('UTC')
+
     #columns = [0: 'classification_id', 'username', 'created_at', 'subject_data' , 'angle', \
     #'major_axis_length', 'x1_major', 'x2_major', 'y1_major', 'y2_major', 'minor_axis_length', \
     #'x1_minor', 'x2_minor', 'y1_minor', 'y2_minor'] (will rename at end)
@@ -56,6 +59,12 @@ def goodVsBadData(data_table):
     #print(ageFile.loc[[0]])
     #print(len(ageFile)) #expect 1024
 
+    #-------------Create the species dictionary-----------
+    # key is the subject_id and the value is the species
+    matchingIDs = pd.read_csv(r'matchingIDs.csv', encoding='utf-8')
+    species_key = match_species_id(matchingIDs)
+    species_dict=make_species_dict(species_key)
+    
     row_num = 0  #row number of measurement data sheet
     i = 0
     found_time_match = False
@@ -96,11 +105,19 @@ def goodVsBadData(data_table):
                         validity = "Good"
                     else:
                         validity = "Bad"
+
+                    #find the current entry
+                    cur_id=data_table.subject_ids[row_num]
+                    cur_species=species_dict.get(cur_id,"N/A") #cur_species = "N/A" if not found
+                    if not (cur_species == "N/A"):
+                        cur_species=cur_species[0]
                     df = df.append([[data_table.classification_id[row_num], \
                                 data_table.user_name[row_num], \
                                 data_table.created_at[row_num], \
                                 data_table.subject_data[row_num], \
-                                data_table.subject_ids[row_num], ageFile.age[i], \
+                                data_table.subject_ids[row_num], \
+                                cur_species, \
+                                ageFile.age[i], \
                                 validity, \
                                 time_range, \
                                 abs(segments_to_check.calc_angle_between_segments()), \
@@ -155,22 +172,23 @@ def goodVsBadData(data_table):
                     2: 'created_at', \
                     3: 'subject_data', \
                     4: 'subject_id', \
-                    5: 'age_group', \
-                    6: 'validity', \
-                    7: 'in_time_range', \
-                    8: 'angle', \
-                    9: 'intersection_point_x', \
-                    10: 'intersection_point_y', \
-                    11: 'major_axis_length', \
-                    12: 'major_x1', \
-                    13: 'major_y1', \
-                    14: 'major_x2', \
-                    15: 'major_y2', \
-                    16:'minor_axis_length', \
-                    17: 'minor_x1', \
-                    18: 'minor_y1', \
-                    19: 'minor_x2', \
-                    20: 'minor_y2',},\
+                    5: 'species', \
+                    6: 'age_group', \
+                    7: 'validity', \
+                    8: 'in_time_range', \
+                    9: 'angle', \
+                    10: 'intersection_point_x', \
+                    11: 'intersection_point_y', \
+                    12: 'major_axis_length', \
+                    13: 'major_x1', \
+                    14: 'major_y1', \
+                    15: 'major_x2', \
+                    16: 'major_y2', \
+                    17:'minor_axis_length', \
+                    18: 'minor_x1', \
+                    19: 'minor_y1', \
+                    20: 'minor_x2', \
+                    21: 'minor_y2',},\
                    axis='columns')
     return df
 
@@ -192,10 +210,9 @@ def clean_data(file_name):
 #                         help='Process some microplant data')
 #     args = parser.parse_args()
 #     clean_data(args.file)
-measurements_data = open(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets_and_Data\time_testing.csv', \
-    encoding='utf-8')
+
+measurements_data = open(r'time_testing.csv', encoding='utf-8')
 # measurements_data = open(r'G:\TimestampMatching\time_testing.csv', encoding='utf-8')
 newdata = clean_data(measurements_data)
-newdata.to_csv(r'C:\Users\achen\Desktop\Sum19FM\CSVSheets_and_Data\scruppedData.csv',
-               encoding='utf-8')
+newdata.to_csv(r'scruppedData.csv', encoding='utf-8')
 # newdata.to_csv(r'G:\TimestampMatching\scruppedData.csv', encoding = 'utf-8')
